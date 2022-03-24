@@ -3,10 +3,10 @@ import bodyParser from 'body-parser';
 import http from 'http';
 import cors from 'cors';
 import path from 'path';
-import { RawData, WebSocketServer, WebSocket } from 'ws';
-import { IMessage } from './Message';
+import { WebSocketServer, WebSocket } from 'ws';
+import { IMessage } from './models/Message';
 
-const sockets = [];
+const sockets: WebSocket[] = [];
 
 const PORT = process.env.PORT || 3000;
 
@@ -19,24 +19,22 @@ app.get('/', (req, res) => {
   res.send('Hello');
 });
 
-app.post('/addSocket', (req, res) => {
-    new WebSocket(req.body.peer);
+app.get('/sockets', (req, res) => {
+  res.status(200).send(sockets);
 });
-
 
 const wss = new WebSocketServer({ port: 4000 }, () =>
   console.log(`WebSocketServer listening on port ${4000}`)
 );
 
-
-
 wss.on('connection', (socket) => {
   sockets.push(socket);
-  socket.send("datadsoijagoijdsaoigjoaids", () => console.log("message sent"));
-  socket.on('message', (msg: IMessage) => {
-      console.log(JSON.stringify());
+
+  socket.on('message', (data: IMessage) => {
+    sockets.forEach((socket) => {
+      socket.emit('message', data);
+    });
   });
-  socket.emit('message');
 });
 
 const server = http.createServer(app);
