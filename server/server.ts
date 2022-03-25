@@ -7,6 +7,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { IMessage } from './models/Message';
 
 const sockets: WebSocket[] = [];
+const messages: IMessage[] = [];
 
 const PORT = process.env.PORT || 3000;
 
@@ -23,17 +24,24 @@ app.get('/sockets', (req, res) => {
   res.status(200).send(sockets);
 });
 
+app.get('/messages', (req, res) => {
+  res.status(200).send(messages);
+});
+
 const wss = new WebSocketServer({ port: 4000 }, () =>
   console.log(`WebSocketServer listening on port ${4000}`)
 );
 
-wss.on('connection', (socket) => {
-  sockets.push(socket);
+wss.on('connection', (ws) => {
+  sockets.push(ws);
+  ws.on('message', (message) => {
+    let parsed: IMessage = JSON.parse(message.toString());
+    messages.push(parsed);
+    sockets.forEach((socket: WebSocket) => socket != ws && socket.send(message));
+  });
 
-  socket.on('message', (data: IMessage) => {
-    sockets.forEach((socket) => {
-      socket.emit('message', data);
-    });
+  ws.on('close', () => {
+    sockets.splice(sockets.indexOf(ws), 1);
   });
 });
 
